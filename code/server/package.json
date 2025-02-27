@@ -1,0 +1,37 @@
+{
+    "name": "stripe-billing-challenge",
+    "version": "0.0.1",
+    "description": "Stripe Billing challenge",
+    "main": "server.js",
+    "type": "module",
+    "scripts": {
+        "lint": "npx eslint",
+        "prestart": "npm run lint",
+        "start": "nodemon --experimental-specifier-resolution=node server.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "stripe-ecosystem",
+    "license": "ISC",
+    "dependencies": {
+        "@babel/eslint-parser": "^7.23.3",
+        "body-parser": "^1.20.0",
+        "cors": "^2.8.5",
+        "dotenv": "^16.0.1",
+        "express": "^4.18.1",
+        "express-async-handler": "^1.2.0",
+        "express-validator": "^6.14.2",
+        "lodash": "^4.17.21",
+        "node-cache": "^5.1.2",
+        "stripe": "^14.2.0"
+    },
+    "devDependencies": {
+        "eslint": "^7.32.0",
+        "eslint-config-prettier": "^9.0.0",
+        "eslint-config-recommended": "^4.1.0",
+        "eslint-plugin-node": "^11.1.0",
+        "eslint-plugin-prettier": "^4.2.0",
+        "eslint-plugin-spellcheck": "^0.0.20",
+        "nodemon": "^2.0.19",
+        "prettier": "2.8.8"
+    }
+}

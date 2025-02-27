@@ -1,0 +1,136 @@
+{
+    "items": {
+        "1.1": {
+            "id": "1.1",
+            "rowId": 1,
+            "title": "Provisioned one-time pair coding session product and price",
+            "learner_prompt": "A product & price exist in Stripe for my fixed rate pair-coding sessions.",
+            "helptext": "Make sure there are Product & Price resources configured with the correct name, unit cost, and lookup key.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "1.2": {
+            "id": "1.2",
+            "rowId": 2,
+            "title": "Signup for fixed price via Checkout",
+            "learner_prompt": "Developers can sign up for one session per month at my specified price.",
+            "helptext": "Make sure that the signup button redirects users to an appropriately configured Stripe Checkout Session",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "1.3": {
+            "id": "1.3",
+            "rowId": 3,
+            "title": "Implement POST /users",
+            "learner_prompt": "When developers sign up, my POST /users endpoint also creates a Stripe Customer for them.",
+            "helptext": "Make sure that your integration is portable and leveraging the API keys I plug into the .env file, that way the Customer is created on my account.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "1.4": {
+            "id": "1.4",
+            "rowId": 4,
+            "title": "Implement GET /users",
+            "learner_prompt": "My GET /users endpoint should let me retrieve a user and get their Stripe Customer ID.",
+            "helptext": "Double-check that your implementation is saving the Stripe Customer ID in the cache and then retrieving it when requested.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "2.1": {
+            "id": "2.1",
+            "rowId": 3,
+            "title": "Detect payment failure",
+            "learner_prompt": "My app detects when a developer's first payment is declined after their trial ends.",
+            "helptext": "Verify that you are receiving Stripe's webhook events and that the developer's subscription state is being persisted into the cache.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "2.2": {
+            "id": "2.2",
+            "rowId": 4,
+            "title": "Detect developer cancelling",
+            "learner_prompt": "Developers can manage their subscription and my app knows if they cancel. ",
+            "helptext": "Verify that you've integrated the Stripe Customer Portal following my spec, then check that you're handling webhook events and persisting the new state.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "2.3": {
+            "id": "2.3",
+            "rowId": 5,
+            "title": "Verify Webhook Signature Implementation",
+            "learner_prompt": "Verify webhook signatures to confirm that received events are sent from Stripe.",
+            "helptext": "Verify webhook signatures to confirm that received events are sent from Stripe using the Stripe library.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "3.1": {
+            "id": "3.1",
+            "rowId": 6,
+            "title": "Price exists for on-demand sessions",
+            "learner_prompt": "A price exists to charge developers when they request an on-demand pair coding session.",
+            "helptext": "Double-check that your provisioning script is setting up the price per the spec.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "3.2": {
+            "id": "3.2",
+            "rowId": 7,
+            "title": "On-demand sessions integrated with Checkout",
+            "learner_prompt": "Developers can sign up for my on-demand offering.",
+            "helptext": "Double check that the integration with Stripe Checkout is using the correct price when the developer requests on demand sessions.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "3.3": {
+            "id": "3.3",
+            "rowId": 8,
+            "title": "Detect when on-demand subscription is cancelled",
+            "learner_prompt": "My app detects when developers cancel their on demand subscription.",
+            "helptext": "Verify that your integration is handling webhook events and correctly persisting the new subscription state.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "3.4": {
+            "id": "3.4",
+            "rowId": 9,
+            "title": "Create usage record when developer requests session",
+            "learner_prompt": "When developers request an on-demand session, we add that cost to their next invoice.",
+            "helptext": "Verify that you're recording each time the developer requests to arrange a session.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "4.1": {
+            "id": "4.1",
+            "rowId": 10,
+            "title": "Provisioned non-recurring workshop price",
+            "learner_prompt": "My Stripe integration always ensures there's a Price ready to go for the one-time workshop fee.",
+            "helptext": "Make sure your Price is using the right lookup key and unit cost, as specified in the provisioning service.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        },
+        "4.2": {
+            "id": "4.2",
+            "rowId": 11,
+            "title": "Sign up for multi-developer workshops as one-time invoice items",
+            "learner_prompt": "Learners can request workshops of more than one person and have that cost added on to their next invoice.",
+            "helptext": "Verify that the Workshop is only being added as a one-time charge, as the developer doesn't have an ongoing subscription to group workshops – only the pair coding sessions.",
+            "graded_assertion": "",
+            "err": {},
+            "Status": ""
+        }
+    },
+    "labName": "Billing Challenge",
+    "sequences": ["milestone1.spec.ts", "milestone2.spec.ts", "milestone3.spec.ts", "milestone4.spec.ts"]
+}
