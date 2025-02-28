@@ -84,6 +84,7 @@ export function UserService() {
       status: subscription.status,
       type: subscriptionType,
     };
+
     DataStore.saveUser(user);
     return user;
   }
@@ -101,9 +102,39 @@ export function UserService() {
     let portalConfigurationId = null;
     const PORTAL_HEADLINE = "/dev/chat";
 
+    let portalConfig = await findPortalConfig(PORTAL_HEADLINE);
+    if (!portalConfig) {
+      portalConfig = await createPortalConfig(PORTAL_HEADLINE);
+    }
+
+    portalConfigurationId = portalConfig.id;
 
     DataStore.savePortalConfig(portalConfigurationId);
     return portalConfigurationId;
+  }
+
+  async function findPortalConfig(businessProfileHeadline) {
+    const portalConfigs = await stripe.billingPortal.configurations.list({ limit: 100 });
+    return portalConfigs.data.find(config =>
+      config.business_profile?.headline === businessProfileHeadline &&
+      config.metadata?.challenge_id === process.env.CHALLENGE_ID
+    );
+  }
+
+  async function createPortalConfig(businessProfileHeadline) {
+    return await stripe.billingPortal.configurations.create({
+      business_profile: {
+        headline: businessProfileHeadline,
+      },
+      metadata: {
+        challenge_id: process.env.CHALLENGE_ID,
+      },
+      features: {
+        payment_method_update: { enabled: true, },
+        invoice_history: { enabled: true, },
+        subscription_cancel: { enabled: true, mode: "immediately", },
+      },
+    });
   }
 
   /**
@@ -115,7 +146,16 @@ export function UserService() {
    */
   async function getPortalLink(userId) {
     const result = { url: null, configuration: null };
+    const portalConfigurationId = await setupPortalConfig();
 
+    const session = await stripe.billingPortal.sessions.create({
+      customer: userId,
+      configuration: portalConfigurationId,
+      return_url: `${process.env.HOSTNAME}:${process.env.PORT}/dashboard`,
+    });
+
+    result.url = session.url;
+    result.configuration = session.configuration;
 
     return result;
   }

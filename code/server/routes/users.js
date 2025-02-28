@@ -22,7 +22,7 @@ router.get(
   asyncHandler(async (request, response) => {
     const userId = request.query.user_id;
     const user = DataStore.findUserById(userId);
-    if (!user) throw new Error("No User exists");
+    if (!user) return response.status(404).json({ message: "No User exists" });
 
     const sessionId = request.query.session_id;
     if (sessionId && sessionId.trim().length > 0) {

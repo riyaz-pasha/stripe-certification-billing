@@ -37,6 +37,10 @@ export function AuthProvider(props: React.PropsWithChildren<object>) {
             const params: Record<string, string> = { user_id };
             if (session_id) params.session_id = session_id;
             const response = await axiosInstance.get("/users", { params });
+            if (response.status === 404) {
+                logout();
+                throw new Error("User not found");
+            }
             login(response.data.user as User);
             return user as User;
         } catch (error) {
