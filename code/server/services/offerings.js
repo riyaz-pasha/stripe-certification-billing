@@ -64,6 +64,27 @@ async function createPrice(productId, unitAmount, nickname, lookupKey) {
     transfer_lookup_key: true,
   })
 }
+
+async function createOnDemandPrice(productId, unitAmount, nickname, lookupKey) {
+  return stripe.prices.create({
+    product: productId,
+    currency: 'usd',
+    unit_amount: unitAmount,
+    lookup_key: lookupKey,
+    nickname: nickname,
+    metadata: {
+      challenge_id: process.env.CHALLENGE_ID,
+    },
+    billing_scheme: "per_unit",
+    recurring: {
+      interval: "month",
+      interval_count: 1,
+      usage_type: 'metered',
+      aggregate_usage: "sum",
+    },
+    transfer_lookup_key: true,
+  });
+}
 /**
  * TODO M1: Set up the Pair Coding product and monthly price
  * on Stripe. First, check whether a correctly configured product
@@ -116,11 +137,24 @@ export async function setupPairCodeConfig() {
   const PAIRCODE_ONDEMAND_NICKNAME = "/dev/chat Pair Coding On-Demand";
   const PAIRCODE_ONDEMAND_COST = 8000;
 
+  let onDemand = await findStripePrice(PAIRCODE_ONDEMAND_LOOKUP_KEY);
+  if (!onDemand) {
+    onDemand = createOnDemandPrice(product.id, PAIRCODE_ONDEMAND_COST, PAIRCODE_ONDEMAND_NICKNAME, PAIRCODE_ONDEMAND_LOOKUP_KEY);
+  }
+
+  const onDemandPrice = {
+    id: onDemand.id,
+    nickname: onDemand.nickname,
+    currency: onDemand.currency,
+    unit_amount: onDemand.unit_amount,
+    lookup_key: onDemand.lookup_key,
+  }
+
   const pairCodeConfig = {
     productId: product.id,
     productName: product.name,
     monthlyPrice: monthlyPrice,
-    onDemandPrice: undefined,
+    onDemandPrice: onDemandPrice,
   };
   DataStore.savePairCodeConfig(pairCodeConfig);
 }
@@ -140,7 +174,7 @@ export async function setupPairCodeConfig() {
 export async function startSubscription(userId, priceId) {
   const result = { url: null };
   const pairCodeConfig = DataStore.getPairCodeConfig();
-  if (pairCodeConfig.monthlyPrice.id === priceId || pairCodeConfig.onDemandPrice.id === priceId) {
+  if (pairCodeConfig.monthlyPrice.id === priceId) {
     const subscription = await stripe.checkout.sessions.create({
       customer: userId,
       mode: 'subscription',
@@ -151,6 +185,24 @@ export async function startSubscription(userId, priceId) {
       }],
       subscription_data: {
         trial_period_days: 3,
+        metadata: {
+          challenge_id: process.env.CHALLENGE_ID,
+        },
+      },
+      success_url: `${process.env.HOSTNAME}:${process.env.PORT}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.HOSTNAME}:${process.env.PORT}/dashboard`,
+    });
+    result.url = subscription.url;
+  }
+  else if (pairCodeConfig.onDemandPrice.id === priceId) {
+    const subscription = await stripe.checkout.sessions.create({
+      customer: userId,
+      mode: 'subscription',
+      payment_method_types: ["card"],
+      line_items: [{
+        price: priceId,
+      }],
+      subscription_data: {
         metadata: {
           challenge_id: process.env.CHALLENGE_ID,
         },
@@ -197,9 +249,38 @@ export async function requestPairCode(userId) {
   const pairCode = DataStore.getPairCodeConfig();
 
   if (!user) throw new Error("No User exists");
+  const subscriptionItemId = await getSubscriptionItemId(user.subscription.id, pairCode.onDemandPrice.id);
+  const usageRecord = await stripe.subscriptionItems.createUsageRecord(
+    subscriptionItemId,
+    {
+      quantity: 1,
+      action: 'increment',
+      timestamp: 'now',
+    },
+  );
 
-
+  usageRecordId = usageRecord.id;
   return usageRecordId;
+}
+
+async function getSubscriptionItemId(subscriptionId, priceId) {
+  let subscriptionItem = undefined;
+  const subscriptionItems = await stripe.subscriptionItems.list({
+    subscription: subscriptionId,
+    limit: 1,
+  });
+  if (subscriptionItems.data.length === 0) {
+    subscriptionItem = await stripe.subscriptionItems.create({
+      subscription: subscriptionId,
+      price: priceId,
+      quantity: 1,
+    });
+  } else {
+    subscriptionItem = subscriptionItems.data[0];
+  }
+
+  const subscriptionItemId = subscriptionItem?.id;
+  return subscriptionItemId;
 }
 
 /**
