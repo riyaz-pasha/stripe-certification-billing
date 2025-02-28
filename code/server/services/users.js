@@ -1,4 +1,4 @@
-import DataStore from "./datastore";
+import DataStore from "./datastore.js";
 
 const BASE_URL = `${process.env.HOSTNAME}:${process.env.PORT}`;
 
@@ -25,8 +25,27 @@ export function UserService() {
   async function create(email, paymentMethod = null) {
     try {
       let user = null;
+      let customer = null;
+      const response = await stripe.customers.list({
+        email: email,
+        limit: 1,
+      })
+      if (response.data.length) customer = response.data[0]
+      else {
+        customer = await stripe.customers.create({
+          email: email,
+          metadata: {
+            challenge_id: process.env.CHALLENGE_ID,
+          },
+          ...paymentMethod && { payment_method: paymentMethod },
+        })
+      }
 
-
+      user = {
+        id: customer.id,
+        email: customer.email,
+        subscription: undefined,
+      }
       if (user) DataStore.saveUser(user);
       return user;
     } catch (error) {
