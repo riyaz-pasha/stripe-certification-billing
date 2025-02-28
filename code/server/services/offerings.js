@@ -1,6 +1,6 @@
 import Stripe from "stripe";
-import DataStore from "./datastore";
-import UserService from "./users";
+import DataStore from "./datastore.js";
+import UserService from "./users.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const CHALLENGE_ID = process.env.CHALLENGE_ID;
@@ -16,14 +16,54 @@ const BASE_URL = `${process.env.HOSTNAME}:${process.env.PORT}`;
 
 async function findStripeProduct(productUrl) {
   let product = null;
+  const response = await stripe.products.list({
+    url: productUrl,
+    limit: 1,
+  });
+  if (response?.data?.length) product = response.data[0];
   return product;
 }
 
 async function findStripePrice(lookupKey) {
   let price = null;
+  const response = await stripe.prices.list({
+    lookup_keys: [lookupKey],
+    limit: 1,
+  })
+  if (response?.data?.length) price = response.data[0];
   return price;
 }
 
+async function createProduct(name, url, unitLabel) {
+  return stripe.products.create({
+    name: name,
+    url: url,
+    unit_label: unitLabel,
+    metadata: {
+      challenge_id: process.env.CHALLENGE_ID,
+    },
+  })
+}
+
+async function createPrice(productId, unitAmount, nickname, lookupKey) {
+  return stripe.prices.create({
+    product: productId,
+    currency: 'usd',
+    unit_amount: unitAmount,
+    lookup_key: lookupKey,
+    nickname: nickname,
+    metadata: {
+      challenge_id: process.env.CHALLENGE_ID,
+    },
+    recurring: {
+      interval: "month",
+      interval_count: 1,
+      trial_period_days: 3,
+      usage_type: "licensed",
+    },
+    transfer_lookup_key: true,
+  })
+}
 /**
  * TODO M1: Set up the Pair Coding product and monthly price
  * on Stripe. First, check whether a correctly configured product
@@ -38,7 +78,6 @@ async function findStripePrice(lookupKey) {
  * TODO M2: Set up the price for on-demand Pair Coding sessions.
  */
 export async function setupPairCodeConfig() {
-  const pairCodeConfig = {};
 
   // TODO M1: Check Stripe to see if there's already a product
   // and price satisfying our specifications. If not, create them.
@@ -50,6 +89,26 @@ export async function setupPairCodeConfig() {
   const PAIRCODE_MONTHLY_NICKNAME = "/dev/chat Pair Coding Monthly";
   const PAIRCODE_MONTHLY_COST = 6000;
 
+  let product = await findStripeProduct(PAIRCODE_PRODUCT_URL);
+  let price;
+  if (!product) {
+    product = await createProduct(PAIRCODE_PRODUCT_NAME, PAIRCODE_PRODUCT_URL, PAIRCODE_PRODUCT_UNIT_LABEL);
+    price = await createPrice(product.id, PAIRCODE_MONTHLY_COST, PAIRCODE_MONTHLY_NICKNAME, PAIRCODE_MONTHLY_LOOKUP_KEY);
+  } else {
+    price = await findStripePrice(PAIRCODE_MONTHLY_LOOKUP_KEY);
+    if (!price) {
+      price = await createPrice(product.id, PAIRCODE_MONTHLY_COST, PAIRCODE_MONTHLY_NICKNAME, PAIRCODE_MONTHLY_LOOKUP_KEY);
+    }
+  }
+
+  const monthlyPrice = {
+    id: price.id,
+    nickname: price.nickname,
+    currency: price.currency,
+    unit_amount: price.unit_amount,
+    lookup_key: price.lookup_key,
+  }
+
 
   // TODO M2: Create the price for on-demand pair coding sessions,
   // add it onto the config object, and save it.
@@ -57,7 +116,12 @@ export async function setupPairCodeConfig() {
   const PAIRCODE_ONDEMAND_NICKNAME = "/dev/chat Pair Coding On-Demand";
   const PAIRCODE_ONDEMAND_COST = 8000;
 
-
+  const pairCodeConfig = {
+    productId: product.id,
+    productName: product.name,
+    monthlyPrice: monthlyPrice,
+    onDemandPrice: undefined,
+  };
   DataStore.savePairCodeConfig(pairCodeConfig);
 }
 
@@ -76,7 +140,26 @@ export async function setupPairCodeConfig() {
 export async function startSubscription(userId, priceId) {
   const result = { url: null };
   const pairCodeConfig = DataStore.getPairCodeConfig();
-
+  if (pairCodeConfig.monthlyPrice.id === priceId || pairCodeConfig.onDemandPrice.id === priceId) {
+    const subscription = await stripe.checkout.sessions.create({
+      customer: userId,
+      mode: 'subscription',
+      payment_method_types: ["card"],
+      line_items: [{
+        price: priceId,
+        quantity: 1,
+      }],
+      subscription_data: {
+        trial_period_days: 3,
+        metadata: {
+          challenge_id: process.env.CHALLENGE_ID,
+        },
+      },
+      success_url: `${process.env.HOSTNAME}:${process.env.PORT}/dashboard?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.HOSTNAME}:${process.env.PORT}/dashboard`,
+    });
+    result.url = subscription.url;
+  }
 
   return result;
 }
@@ -91,6 +174,12 @@ export async function startSubscription(userId, priceId) {
  */
 export async function findSubscriptionFromCheckoutSession(sessionId) {
   let subscription = null;
+  const session = await stripe.checkout.sessions.retrieve(sessionId, {
+    expand: ['subscription']
+  });
+  if (session.mode === 'subscription') {
+    subscription = session.subscription;
+  }
   return subscription;
 }
 

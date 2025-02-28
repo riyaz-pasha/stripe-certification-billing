@@ -1,5 +1,5 @@
 import { Router, raw } from "express";
-import UserService from "../services/users";
+import UserService from "../services/users.js";
 const router = Router();
 
 import Stripe from "stripe";

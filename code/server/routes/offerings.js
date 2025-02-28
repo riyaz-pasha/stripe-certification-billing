@@ -2,8 +2,8 @@ import { Router } from "express";
 import { body } from "express-validator";
 import asyncHandler from "express-async-handler";
 
-import DataStore from "../services/datastore";
-import OfferingsService from "../services/offerings";
+import DataStore from "../services/datastore.js";
+import OfferingsService from "../services/offerings.js";
 
 const router = Router();
 

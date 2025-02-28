@@ -11,7 +11,7 @@ const app = express();
 app.use(express.static(process.env.STATIC_DIR));
 
 // Mount webhookRouter before other middleware, it needs raw requests
-import webhookRouter from "./routes/webhook";
+import webhookRouter from "./routes/webhook.js";
 app.use(webhookRouter);
 
 // Encode/decode JSON bodies
@@ -28,8 +28,8 @@ app.use(
   })
 );
 
-import offeringsRouter from "./routes/offerings";
-import usersRouter from "./routes/users";
+import offeringsRouter from "./routes/offerings.js";
+import usersRouter from "./routes/users.js";
 app.use(usersRouter);
 app.use(offeringsRouter);
 

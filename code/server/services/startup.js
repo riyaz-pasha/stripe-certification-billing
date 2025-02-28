@@ -1,6 +1,6 @@
-import DataStore from "./datastore";
-import UserService from "./users";
-import OfferingsService from "./offerings";
+import DataStore from "./datastore.js";
+import UserService from "./users.js";
+import OfferingsService from "./offerings.js";
 
 /**
  * This function runs when the server starts up and calls the
