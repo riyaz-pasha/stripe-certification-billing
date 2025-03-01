@@ -299,10 +299,45 @@ export async function setupWorkshopConfig() {
   const WORKSHOP_PRICE_NICKNAME = "/dev/chat Workshop";
   const WORKSHOP_PRICE_COST = 8000;
 
-  const workshopConfig = {};
+  let workshopProduct = await findStripeProduct(WORKSHOP_PRODUCT_URL);
+  let workshopPrice;
+  if (!workshopProduct) {
+    workshopProduct = await createProduct(WORKSHOP_PRODUCT_NAME, WORKSHOP_PRODUCT_URL, WORKSHOP_PRODUCT_UNIT_LABEL);
+    workshopPrice = await createWorkshopPrice(workshopProduct.id, WORKSHOP_PRICE_COST, WORKSHOP_PRICE_NICKNAME, WORKSHOP_PRICE_LOOKUP_KEY);
+  } else {
+    workshopPrice = await findStripePrice(WORKSHOP_PRICE_LOOKUP_KEY);
+    if (!workshopPrice) {
+      workshopPrice = await createWorkshopPrice(workshopProduct.id, WORKSHOP_PRICE_COST, WORKSHOP_PRICE_NICKNAME, WORKSHOP_PRICE_LOOKUP_KEY);
+    }
+  }
 
+  const workshopConfig = {
+    productId: workshopProduct.id,
+    productName: workshopProduct.name,
+    perSeatPrice: {
+      id: workshopPrice.id,
+      nickname: workshopPrice.nickname,
+      currency: workshopPrice.currency,
+      unit_amount: workshopPrice.unit_amount,
+      lookup_key: workshopPrice.lookup_key,
+    },
+  };
 
   DataStore.saveWorkshopConfig(workshopConfig);
+}
+
+async function createWorkshopPrice(productId, unitAmount, nickname, lookupKey) {
+  return stripe.prices.create({
+    product: productId,
+    currency: 'usd',
+    unit_amount: unitAmount,
+    lookup_key: lookupKey,
+    nickname: nickname,
+    metadata: {
+      challenge_id: process.env.CHALLENGE_ID,
+    },
+    transfer_lookup_key: true,
+  })
 }
 
 /**
@@ -321,7 +356,13 @@ export async function requestWorkshop(userId, attendees = 1) {
   const user = DataStore.findUserById(userId);
   if (!user) throw new Error("No such user exists!");
 
+  const invoiceItem = await stripe.invoiceItems.create({
+    customer: userId,
+    price: workshopConfig.perSeatPrice.id,
+    quantity: attendees,
+  })
 
+  result.subscription = user.subscription.id;
   return result;
 }
 
